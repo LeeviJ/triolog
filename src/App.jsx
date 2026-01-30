@@ -1,16 +1,33 @@
-import { useState, useEffect } from 'react';
-import { MapPin, List } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { MapPin, List, Receipt, Menu, Download, Upload } from 'lucide-react';
 import TripTracker from './components/TripTracker';
 import TripList from './components/TripList';
-import { loadTrips, saveTrips } from './utils/storage';
+import ReceiptScanner from './components/ReceiptScanner';
+import Suggestions from './components/Suggestions';
+import {
+  loadTrips, saveTrips,
+  loadSuggestions, saveSuggestions,
+  loadSettings, saveSettings,
+  exportBackup, importBackup,
+  getRates,
+} from './utils/storage';
+import { receiptTimeToTimestamp } from './utils/receiptParser';
+
+const MATCH_WINDOW_MS = 30 * 60 * 1000;
 
 export default function App() {
   const [tab, setTab] = useState('track');
   const [trips, setTrips] = useState(() => loadTrips());
+  const [suggestions, setSuggestions] = useState(() => loadSuggestions());
+  const [settings, setSettings] = useState(() => loadSettings());
+  const [importMsg, setImportMsg] = useState(null);
+  const importRef = useRef(null);
 
-  useEffect(() => {
-    saveTrips(trips);
-  }, [trips]);
+  useEffect(() => { saveTrips(trips); }, [trips]);
+  useEffect(() => { saveSuggestions(suggestions); }, [suggestions]);
+  useEffect(() => { saveSettings(settings); }, [settings]);
+
+  const rates = getRates(settings);
 
   const handleTripEnd = (trip) => {
     setTrips((prev) => [trip, ...prev]);
@@ -18,13 +35,82 @@ export default function App() {
   };
 
   const handleUpdateType = (id, type) => {
-    setTrips((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, type } : t))
-    );
+    setTrips((prev) => prev.map((t) => (t.id === id ? { ...t, type } : t)));
   };
 
   const handleDelete = (id) => {
     setTrips((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const handleReceiptScanned = (parsed) => {
+    const receiptTs = receiptTimeToTimestamp(parsed.date, parsed.time);
+    if (!receiptTs) return;
+
+    const matchedTrip = trips.find(
+      (t) => t.endTime && Math.abs(t.endTime - receiptTs) <= MATCH_WINDOW_MS
+    );
+
+    const suggestion = {
+      id: Date.now(),
+      type: matchedTrip ? 'classify' : 'proposed_trip',
+      tripId: matchedTrip?.id ?? null,
+      storeName: parsed.storeName || 'Tuntematon',
+      receiptTime: receiptTs,
+      proposedTrip: matchedTrip ? null : {
+        id: Date.now() + 1,
+        date: parsed.date,
+        startTime: receiptTs - 15 * 60 * 1000,
+        endTime: receiptTs,
+        distance: 0,
+        duration: 900,
+        type: 'work',
+        storeName: parsed.storeName,
+        address: parsed.address,
+      },
+      status: 'pending',
+    };
+
+    setSuggestions((prev) => [suggestion, ...prev]);
+  };
+
+  const handleAcceptSuggestion = (id) => {
+    setSuggestions((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, status: 'accepted' } : s))
+    );
+    const suggestion = suggestions.find((s) => s.id === id);
+    if (!suggestion) return;
+
+    if (suggestion.type === 'classify' && suggestion.tripId) {
+      handleUpdateType(suggestion.tripId, 'work');
+    } else if (suggestion.type === 'proposed_trip' && suggestion.proposedTrip) {
+      setTrips((prev) => [suggestion.proposedTrip, ...prev]);
+    }
+  };
+
+  const handleRejectSuggestion = (id) => {
+    setSuggestions((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, status: 'rejected' } : s))
+    );
+  };
+
+  const handleToggle2025 = () => {
+    setSettings((prev) => ({ ...prev, use2025Rates: !prev.use2025Rates }));
+  };
+
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const data = await importBackup(file);
+      setTrips(data.trips || []);
+      setSuggestions(data.suggestions || []);
+      if (data.settings) setSettings(data.settings);
+      setImportMsg('Varmuuskopio palautettu onnistuneesti!');
+    } catch (err) {
+      setImportMsg(err.message);
+    }
+    if (importRef.current) importRef.current.value = '';
+    setTimeout(() => setImportMsg(null), 3000);
   };
 
   return (
@@ -34,10 +120,77 @@ export default function App() {
       </header>
 
       <main className="flex-1 overflow-y-auto">
-        {tab === 'track' ? (
-          <TripTracker onTripEnd={handleTripEnd} />
-        ) : (
+        {tab === 'track' && <TripTracker onTripEnd={handleTripEnd} />}
+        {tab === 'list' && (
           <TripList trips={trips} onUpdate={handleUpdateType} onDelete={handleDelete} />
+        )}
+        {tab === 'receipts' && (
+          <>
+            <ReceiptScanner onReceiptScanned={handleReceiptScanned} />
+            <Suggestions
+              suggestions={suggestions}
+              onAccept={handleAcceptSuggestion}
+              onReject={handleRejectSuggestion}
+            />
+          </>
+        )}
+        {tab === 'menu' && (
+          <div className="p-4 space-y-4">
+            {/* 2025 rates toggle */}
+            <div className="bg-white rounded-xl shadow p-4 space-y-3">
+              <h3 className="font-semibold">Verohallinnon korvaukset</h3>
+              <label className="flex items-center justify-between cursor-pointer">
+                <span className="text-sm">Käytä vuoden 2025 korvauksia</span>
+                <div
+                  onClick={handleToggle2025}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                    settings.use2025Rates ? 'bg-green-500' : 'bg-gray-300'
+                  }`}
+                >
+                  <div
+                    className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                      settings.use2025Rates ? 'translate-x-6' : 'translate-x-0.5'
+                    }`}
+                  />
+                </div>
+              </label>
+              <div className="text-xs text-gray-500 space-y-1">
+                <div>Kilometrikorvaus: {rates.km.toFixed(2).replace('.', ',')} €/km</div>
+                <div>Kokopäiväraha: {rates.fullDay} €</div>
+                <div>Osapäiväraha: {rates.halfDay} €</div>
+              </div>
+            </div>
+
+            {/* Backup */}
+            <div className="bg-white rounded-xl shadow p-4 space-y-3">
+              <h3 className="font-semibold">Varmuuskopiointi</h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={exportBackup}
+                  className="flex-1 flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2.5 rounded-lg transition-colors text-sm"
+                >
+                  <Download size={16} /> Lataa varmuuskopio
+                </button>
+                <label className="flex-1 flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-lg transition-colors text-sm cursor-pointer">
+                  <Upload size={16} /> Palauta varmuuskopio
+                  <input
+                    ref={importRef}
+                    type="file"
+                    accept=".json"
+                    onChange={handleImport}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              {importMsg && (
+                <div className="text-sm text-green-600 text-center">{importMsg}</div>
+              )}
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Vinkki: Kun olet skannannut kuitit, lataa varmuuskopio ja tallenna se pilveen
+                tai lähetä itsellesi sähköpostilla. Näin tiedot säilyvät varmasti tallessa.
+              </p>
+            </div>
+          </div>
         )}
       </main>
 
@@ -59,6 +212,24 @@ export default function App() {
         >
           <List size={20} />
           Matkat
+        </button>
+        <button
+          onClick={() => setTab('receipts')}
+          className={`flex-1 flex flex-col items-center py-3 text-sm font-medium transition-colors ${
+            tab === 'receipts' ? 'text-green-600' : 'text-gray-400'
+          }`}
+        >
+          <Receipt size={20} />
+          Kuitit
+        </button>
+        <button
+          onClick={() => setTab('menu')}
+          className={`flex-1 flex flex-col items-center py-3 text-sm font-medium transition-colors ${
+            tab === 'menu' ? 'text-green-600' : 'text-gray-400'
+          }`}
+        >
+          <Menu size={20} />
+          Valikko
         </button>
       </nav>
     </div>
