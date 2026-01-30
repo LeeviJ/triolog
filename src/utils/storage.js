@@ -4,6 +4,8 @@ const SETTINGS_KEY = 'triolog_settings';
 
 const DEFAULT_SETTINGS = {
   use2025Rates: false,
+  profiles: ['Yleinen', 'Ohjelmapalvelut', 'Maatalous', 'Metsätalous'],
+  activeProfile: 'Yleinen',
 };
 
 export function loadTrips() {
@@ -32,7 +34,16 @@ export function saveSuggestions(suggestions) {
 
 export function loadSettings() {
   try {
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY)) };
+    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+    const merged = { ...DEFAULT_SETTINGS, ...saved };
+    // Ensure profiles array always exists
+    if (!Array.isArray(merged.profiles) || merged.profiles.length === 0) {
+      merged.profiles = DEFAULT_SETTINGS.profiles;
+    }
+    if (!merged.activeProfile) {
+      merged.activeProfile = merged.profiles[0];
+    }
+    return merged;
   } catch {
     return { ...DEFAULT_SETTINGS };
   }

@@ -1,4 +1,5 @@
-import { Briefcase, User, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Briefcase, User, Trash2, Filter } from 'lucide-react';
 
 function formatDuration(seconds) {
   const h = Math.floor(seconds / 3600);
@@ -19,61 +20,94 @@ const typeColors = {
   private: 'bg-amber-100 text-amber-700',
 };
 
-export default function TripList({ trips, onUpdate, onDelete }) {
-  if (trips.length === 0) {
-    return (
-      <div className="text-center text-gray-400 mt-20">
-        Ei tallennettuja matkoja
-      </div>
-    );
-  }
+export default function TripList({ trips, onUpdate, onDelete, profiles }) {
+  const [filterProfile, setFilterProfile] = useState('all');
+
+  const filtered = filterProfile === 'all'
+    ? trips
+    : trips.filter((t) => (t.profile || 'Yleinen') === filterProfile);
 
   return (
     <div className="space-y-3 p-4">
-      {trips.map((trip) => (
-        <div key={trip.id} className="bg-white rounded-xl shadow p-4 space-y-3">
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="font-semibold">{trip.date}</div>
-              <div className="text-sm text-gray-500">
-                {trip.distance.toFixed(2)} km &middot; {formatDuration(trip.duration)}
-              </div>
-            </div>
-            <span className={`text-xs px-2 py-1 rounded-full font-medium ${typeColors[trip.type]}`}>
-              {typeLabels[trip.type]}
-            </span>
-          </div>
-
-          <div className="flex gap-2">
+      {/* Profile filter */}
+      {profiles && profiles.length > 1 && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <Filter size={14} className="text-gray-400 shrink-0" />
+          <button
+            onClick={() => setFilterProfile('all')}
+            className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+              filterProfile === 'all' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600'
+            }`}
+          >
+            Kaikki
+          </button>
+          {profiles.map((p) => (
             <button
-              onClick={() => onUpdate(trip.id, 'work')}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                trip.type === 'work'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-blue-100'
+              key={p}
+              onClick={() => setFilterProfile(p)}
+              className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                filterProfile === p ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600'
               }`}
             >
-              <Briefcase size={14} /> Työajo
+              {p}
             </button>
-            <button
-              onClick={() => onUpdate(trip.id, 'private')}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                trip.type === 'private'
-                  ? 'bg-amber-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-amber-100'
-              }`}
-            >
-              <User size={14} /> Yksityinen
-            </button>
-            <button
-              onClick={() => onDelete(trip.id)}
-              className="ml-auto px-3 py-1.5 rounded-lg text-sm text-red-500 hover:bg-red-50 transition-colors"
-            >
-              <Trash2 size={14} />
-            </button>
-          </div>
+          ))}
         </div>
-      ))}
+      )}
+
+      {filtered.length === 0 ? (
+        <div className="text-center text-gray-400 mt-20">
+          Ei tallennettuja matkoja
+        </div>
+      ) : (
+        filtered.map((trip) => (
+          <div key={trip.id} className="bg-white rounded-xl shadow p-4 space-y-3">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="font-semibold">{trip.date}</div>
+                <div className="text-sm text-gray-500">
+                  {trip.distance.toFixed(2)} km &middot; {formatDuration(trip.duration)}
+                </div>
+                {trip.profile && trip.profile !== 'Yleinen' && (
+                  <div className="text-xs text-purple-600 mt-0.5">{trip.profile}</div>
+                )}
+              </div>
+              <span className={`text-xs px-2 py-1 rounded-full font-medium ${typeColors[trip.type]}`}>
+                {typeLabels[trip.type]}
+              </span>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => onUpdate(trip.id, 'work')}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  trip.type === 'work'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-blue-100'
+                }`}
+              >
+                <Briefcase size={14} /> Työajo
+              </button>
+              <button
+                onClick={() => onUpdate(trip.id, 'private')}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  trip.type === 'private'
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-amber-100'
+                }`}
+              >
+                <User size={14} /> Yksityinen
+              </button>
+              <button
+                onClick={() => onDelete(trip.id)}
+                className="ml-auto px-3 py-1.5 rounded-lg text-sm text-red-500 hover:bg-red-50 transition-colors"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 }

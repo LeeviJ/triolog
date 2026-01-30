@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MapPin, List, Receipt, Menu, Download, Upload } from 'lucide-react';
+import { MapPin, List, Receipt, Menu, Download, Upload, Plus, X } from 'lucide-react';
 import TripTracker from './components/TripTracker';
 import TripList from './components/TripList';
 import ReceiptScanner from './components/ReceiptScanner';
@@ -21,6 +21,7 @@ export default function App() {
   const [suggestions, setSuggestions] = useState(() => loadSuggestions());
   const [settings, setSettings] = useState(() => loadSettings());
   const [importMsg, setImportMsg] = useState(null);
+  const [newProfile, setNewProfile] = useState('');
   const importRef = useRef(null);
 
   useEffect(() => { saveTrips(trips); }, [trips]);
@@ -28,6 +29,7 @@ export default function App() {
   useEffect(() => { saveSettings(settings); }, [settings]);
 
   const rates = getRates(settings);
+  const profiles = settings.profiles || ['Yleinen'];
 
   const handleTripEnd = (trip) => {
     setTrips((prev) => [trip, ...prev]);
@@ -64,6 +66,7 @@ export default function App() {
         distance: 0,
         duration: 900,
         type: 'work',
+        profile: settings.activeProfile || 'Yleinen',
         storeName: parsed.storeName,
         address: parsed.address,
       },
@@ -97,6 +100,22 @@ export default function App() {
     setSettings((prev) => ({ ...prev, use2025Rates: !prev.use2025Rates }));
   };
 
+  const handleAddProfile = () => {
+    const name = newProfile.trim();
+    if (!name || profiles.includes(name)) return;
+    setSettings((prev) => ({ ...prev, profiles: [...prev.profiles, name] }));
+    setNewProfile('');
+  };
+
+  const handleRemoveProfile = (name) => {
+    if (name === 'Yleinen') return;
+    setSettings((prev) => ({
+      ...prev,
+      profiles: prev.profiles.filter((p) => p !== name),
+      activeProfile: prev.activeProfile === name ? 'Yleinen' : prev.activeProfile,
+    }));
+  };
+
   const handleImport = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -120,9 +139,16 @@ export default function App() {
       </header>
 
       <main className="flex-1 overflow-y-auto">
-        {tab === 'track' && <TripTracker onTripEnd={handleTripEnd} />}
+        {tab === 'track' && (
+          <TripTracker onTripEnd={handleTripEnd} profiles={profiles} />
+        )}
         {tab === 'list' && (
-          <TripList trips={trips} onUpdate={handleUpdateType} onDelete={handleDelete} />
+          <TripList
+            trips={trips}
+            onUpdate={handleUpdateType}
+            onDelete={handleDelete}
+            profiles={profiles}
+          />
         )}
         {tab === 'receipts' && (
           <>
@@ -136,6 +162,42 @@ export default function App() {
         )}
         {tab === 'menu' && (
           <div className="p-4 space-y-4">
+            {/* Profiles */}
+            <div className="bg-white rounded-xl shadow p-4 space-y-3">
+              <h3 className="font-semibold">Ajoprofiilit</h3>
+              <div className="space-y-2">
+                {profiles.map((p) => (
+                  <div key={p} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                    <span className="text-sm font-medium">{p}</span>
+                    {p !== 'Yleinen' && (
+                      <button
+                        onClick={() => handleRemoveProfile(p)}
+                        className="text-red-400 hover:text-red-600"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newProfile}
+                  onChange={(e) => setNewProfile(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddProfile()}
+                  placeholder="Uusi profiili..."
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                />
+                <button
+                  onClick={handleAddProfile}
+                  className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg transition-colors"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+            </div>
+
             {/* 2025 rates toggle */}
             <div className="bg-white rounded-xl shadow p-4 space-y-3">
               <h3 className="font-semibold">Verohallinnon korvaukset</h3>
