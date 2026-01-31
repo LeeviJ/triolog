@@ -3,6 +3,45 @@ import { Camera, Loader2 } from 'lucide-react';
 import { createWorker } from 'tesseract.js';
 import { parseReceipt } from '../utils/receiptParser';
 
+function preprocessImage(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+
+      // Draw original image
+      ctx.drawImage(img, 0, 0);
+
+      // Get pixel data
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+
+      for (let i = 0; i < data.length; i += 4) {
+        // Convert to grayscale
+        const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+
+        // Increase contrast (factor 2.0, centered at 128)
+        const contrasted = Math.min(255, Math.max(0, (gray - 128) * 2.0 + 128));
+
+        // Apply threshold: black text on white background
+        const final = contrasted < 140 ? 0 : 255;
+
+        data[i] = final;
+        data[i + 1] = final;
+        data[i + 2] = final;
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+
+      canvas.toBlob((blob) => resolve(blob), 'image/png');
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 export default function ReceiptScanner({ onReceiptScanned }) {
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState(null);
@@ -19,8 +58,9 @@ export default function ReceiptScanner({ onReceiptScanned }) {
     setResult(null);
 
     try {
+      const processedImage = await preprocessImage(file);
       const worker = await createWorker('fin+eng');
-      const { data: { text } } = await worker.recognize(file);
+      const { data: { text } } = await worker.recognize(processedImage);
       await worker.terminate();
 
       const parsed = parseReceipt(text);

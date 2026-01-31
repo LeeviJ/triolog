@@ -58,6 +58,7 @@ export default function App() {
       tripId: matchedTrip?.id ?? null,
       storeName: parsed.storeName || 'Tuntematon',
       receiptTime: receiptTs,
+      ocrRawText: parsed.raw || '',
       proposedTrip: matchedTrip ? null : {
         id: Date.now() + 1,
         date: parsed.date,
