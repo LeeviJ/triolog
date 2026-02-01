@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MapPin, List, Receipt, Menu, Download, Upload, Plus, X } from 'lucide-react';
+import { MapPin, List, Receipt, Menu, Download, Upload, Plus, X, Mail } from 'lucide-react';
 import TripTracker from './components/TripTracker';
 import TripList from './components/TripList';
 import ReceiptScanner from './components/ReceiptScanner';
@@ -9,7 +9,7 @@ import {
   loadSuggestions, saveSuggestions,
   loadSettings, saveSettings,
   exportBackup, importBackup,
-  getRates,
+  getRates, sendBackupByEmail,
 } from './utils/storage';
 import { receiptTimeToTimestamp } from './utils/receiptParser';
 
@@ -27,6 +27,14 @@ export default function App() {
   useEffect(() => { saveTrips(trips); }, [trips]);
   useEffect(() => { saveSuggestions(suggestions); }, [suggestions]);
   useEffect(() => { saveSettings(settings); }, [settings]);
+
+  const prevTripsLen = useRef(trips.length);
+  useEffect(() => {
+    if (settings.autoEmailBackup && settings.backupEmail && trips.length > prevTripsLen.current) {
+      sendBackupByEmail(settings.backupEmail);
+    }
+    prevTripsLen.current = trips.length;
+  }, [trips, settings.autoEmailBackup, settings.backupEmail]);
 
   const rates = getRates(settings);
   const profiles = settings.profiles || ['Yleinen'];
@@ -224,6 +232,39 @@ export default function App() {
               </div>
             </div>
 
+            {/* Email backup settings */}
+            <div className="bg-white rounded-xl shadow p-4 space-y-3">
+              <h3 className="font-semibold">Sähköpostivarmuuskopio</h3>
+              <label className="block text-sm text-gray-600">
+                Sähköpostiosoite
+              </label>
+              <input
+                type="email"
+                value={settings.backupEmail || ''}
+                onChange={(e) => setSettings((prev) => ({ ...prev, backupEmail: e.target.value }))}
+                placeholder="nimi@esimerkki.fi"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              />
+              <label className="flex items-center justify-between cursor-pointer">
+                <span className="text-sm">Lähetä automaattisesti tallennuksen yhteydessä</span>
+                <div
+                  onClick={() => setSettings((prev) => ({ ...prev, autoEmailBackup: !prev.autoEmailBackup }))}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                    settings.autoEmailBackup ? 'bg-green-500' : 'bg-gray-300'
+                  }`}
+                >
+                  <div
+                    className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                      settings.autoEmailBackup ? 'translate-x-6' : 'translate-x-0.5'
+                    }`}
+                  />
+                </div>
+              </label>
+              <p className="text-xs text-gray-400">
+                Kun kytkin on päällä, varmuuskopio lähetetään sähköpostiin aina kun uusi matka tallentuu.
+              </p>
+            </div>
+
             {/* Backup */}
             <div className="bg-white rounded-xl shadow p-4 space-y-3">
               <h3 className="font-semibold">Varmuuskopiointi</h3>
@@ -245,6 +286,16 @@ export default function App() {
                   />
                 </label>
               </div>
+              <button
+                onClick={() => {
+                  const email = settings.backupEmail;
+                  if (!email) { setImportMsg('Aseta ensin sähköpostiosoite yllä.'); setTimeout(() => setImportMsg(null), 3000); return; }
+                  sendBackupByEmail(email);
+                }}
+                className="w-full flex items-center justify-center gap-2 bg-purple-500 hover:bg-purple-600 text-white font-medium py-2.5 rounded-lg transition-colors text-sm"
+              >
+                <Mail size={16} /> Lähetä nyt sähköpostiin
+              </button>
               {importMsg && (
                 <div className="text-sm text-green-600 text-center">{importMsg}</div>
               )}
