@@ -104,25 +104,11 @@ export function getBackupData() {
   };
 }
 
+export { sendEmailBackup } from './emailBackup';
+
 export function sendBackupByEmail(email) {
   const data = getBackupData();
-  const json = JSON.stringify(data, null, 2);
-  const now = new Date();
-  const dd = String(now.getDate()).padStart(2, '0');
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const yy = String(now.getFullYear()).slice(-2);
-
-  const subject = encodeURIComponent(`TrioLog varmuuskopio ${dd}.${mm}.${yy}`);
-  const body = encodeURIComponent(
-    'TrioLog-varmuuskopio liitteenä alla.\n\n' +
-    'Tallenna tämä viesti tai kopioi alla oleva JSON-data talteen.\n' +
-    'Voit palauttaa sen TrioLog-sovelluksessa kohdasta Valikko > Palauta varmuuskopio.\n\n' +
-    '--- VARMUUSKOPIO ALKAA ---\n' +
-    json +
-    '\n--- VARMUUSKOPIO PÄÄTTYY ---'
-  );
-
-  window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+  return sendEmailBackup(email, data, 'TrioLog');
 }
 
 export const RATES = {

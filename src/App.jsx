@@ -31,7 +31,7 @@ export default function App() {
   const prevTripsLen = useRef(trips.length);
   useEffect(() => {
     if (settings.autoEmailBackup && settings.backupEmail && trips.length > prevTripsLen.current) {
-      sendBackupByEmail(settings.backupEmail);
+      sendBackupByEmail(settings.backupEmail).catch(() => {});
     }
     prevTripsLen.current = trips.length;
   }, [trips, settings.autoEmailBackup, settings.backupEmail]);
@@ -287,10 +287,16 @@ export default function App() {
                 </label>
               </div>
               <button
-                onClick={() => {
+                onClick={async () => {
                   const email = settings.backupEmail;
                   if (!email) { setImportMsg('Aseta ensin sähköpostiosoite yllä.'); setTimeout(() => setImportMsg(null), 3000); return; }
-                  sendBackupByEmail(email);
+                  try {
+                    await sendBackupByEmail(email);
+                    setImportMsg('Varmuuskopio lähetetty sähköpostiin!');
+                  } catch {
+                    setImportMsg('Sähköpostin lähetys epäonnistui.');
+                  }
+                  setTimeout(() => setImportMsg(null), 3000);
                 }}
                 className="w-full flex items-center justify-center gap-2 bg-purple-500 hover:bg-purple-600 text-white font-medium py-2.5 rounded-lg transition-colors text-sm"
               >
