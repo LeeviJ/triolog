@@ -7,13 +7,20 @@ function preprocessImage(file) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
+      const MAX_DIM = 1500;
+      let { width, height } = img;
+      if (width > MAX_DIM || height > MAX_DIM) {
+        const scale = MAX_DIM / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
       const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext('2d');
 
       // Draw original image
-      ctx.drawImage(img, 0, 0);
+      ctx.drawImage(img, 0, 0, width, height);
 
       // Get pixel data
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
