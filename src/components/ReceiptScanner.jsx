@@ -137,15 +137,32 @@ export default function ReceiptScanner({ onReceiptScanned }) {
       )}
 
       {result && (
-        <div className="bg-white rounded-xl shadow p-4 space-y-2">
-          <h3 className="font-semibold text-sm text-gray-500">Kuitin tiedot</h3>
-          {result.storeName && (
-            <div className="text-lg font-bold">{result.storeName}</div>
+        <div className="space-y-3">
+          {result.total && (
+            <div className={`rounded-xl shadow p-4 text-center ${
+              result.confidence === 'high' ? 'bg-green-50 border border-green-200' :
+              result.confidence === 'medium' ? 'bg-yellow-50 border border-yellow-200' :
+              'bg-orange-50 border border-orange-200'
+            }`}>
+              <div className="text-2xl font-bold">{result.total} €</div>
+              <div className="text-sm text-gray-500 mt-1">
+                {result.confidence === 'high' ? 'Tunnistettu summa' :
+                 result.confidence === 'medium' ? 'Tunnistettu summa (tarkista)' :
+                 'Paras arvaus summasta (tarkista)'}
+                {' — Osuiko oikeaan?'}
+              </div>
+            </div>
           )}
-          <div className="text-sm text-gray-600 space-y-1">
-            {result.date && <div>Päivämäärä: {result.date}</div>}
-            {result.time && <div>Aika: {result.time}</div>}
-            {result.address && <div>Osoite: {result.address}</div>}
+          <div className="bg-white rounded-xl shadow p-4 space-y-2">
+            <h3 className="font-semibold text-sm text-gray-500">Kuitin tiedot</h3>
+            {result.storeName && (
+              <div className="text-lg font-bold">{result.storeName}</div>
+            )}
+            <div className="text-sm text-gray-600 space-y-1">
+              {result.date && <div>Päivämäärä: {result.date}</div>}
+              {result.time && <div>Aika: {result.time}</div>}
+              {result.total && <div>Summa: {result.total} €</div>}
+            </div>
           </div>
         </div>
       )}
