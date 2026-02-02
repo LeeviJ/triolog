@@ -1,6 +1,6 @@
 import emailjs from '@emailjs/browser';
 
-const SERVICE_ID = 'service_7t2a1y4';
+const SERVICE_ID = 'service_ntldw1a';
 const TEMPLATE_ID = 'template_57uxo1s';
 const PUBLIC_KEY = 'lg6qe5VWQC2tML2zo';
 
