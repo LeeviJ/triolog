@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MapPin, List, Receipt, Menu, Download, Upload, Plus, X, Mail } from 'lucide-react';
+import { MapPin, List, Receipt, Menu, Download, Upload, Plus, X, Mail, Store, Trash2 } from 'lucide-react';
 import TripTracker from './components/TripTracker';
 import TripList from './components/TripList';
 import ReceiptScanner from './components/ReceiptScanner';
@@ -8,6 +8,7 @@ import {
   loadTrips, saveTrips,
   loadSuggestions, saveSuggestions,
   loadSettings, saveSettings,
+  loadVendors, saveVendors,
   exportBackup, importBackup,
   getRates, sendBackupByEmail,
 } from './utils/storage';
@@ -20,6 +21,7 @@ export default function App() {
   const [trips, setTrips] = useState(() => loadTrips());
   const [suggestions, setSuggestions] = useState(() => loadSuggestions());
   const [settings, setSettings] = useState(() => loadSettings());
+  const [vendors, setVendors] = useState(() => loadVendors());
   const [importMsg, setImportMsg] = useState(null);
   const [newProfile, setNewProfile] = useState('');
   const importRef = useRef(null);
@@ -27,6 +29,7 @@ export default function App() {
   useEffect(() => { saveTrips(trips); }, [trips]);
   useEffect(() => { saveSuggestions(suggestions); }, [suggestions]);
   useEffect(() => { saveSettings(settings); }, [settings]);
+  useEffect(() => { saveVendors(vendors); }, [vendors]);
 
   const prevTripsLen = useRef(trips.length);
   useEffect(() => {
@@ -125,6 +128,17 @@ export default function App() {
     }));
   };
 
+  const handleSaveVendor = (vendor) => {
+    setVendors((prev) => {
+      if (prev.some(v => v.name.toLowerCase() === vendor.name.toLowerCase())) return prev;
+      return [...prev, { ...vendor, id: Date.now() }];
+    });
+  };
+
+  const handleDeleteVendor = (id) => {
+    setVendors((prev) => prev.filter((v) => v.id !== id));
+  };
+
   const handleImport = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -133,6 +147,7 @@ export default function App() {
       setTrips(data.trips || []);
       setSuggestions(data.suggestions || []);
       if (data.settings) setSettings(data.settings);
+      if (data.vendors) setVendors(data.vendors);
       setImportMsg('Varmuuskopio palautettu onnistuneesti!');
     } catch (err) {
       setImportMsg(err.message);
@@ -161,7 +176,11 @@ export default function App() {
         )}
         {tab === 'receipts' && (
           <>
-            <ReceiptScanner onReceiptScanned={handleReceiptScanned} />
+            <ReceiptScanner
+              onReceiptScanned={handleReceiptScanned}
+              vendors={vendors}
+              onSaveVendor={handleSaveVendor}
+            />
             <Suggestions
               suggestions={suggestions}
               onAccept={handleAcceptSuggestion}
@@ -204,6 +223,31 @@ export default function App() {
                 >
                   <Plus size={16} />
                 </button>
+              </div>
+            </div>
+
+            {/* Saved vendors */}
+            <div className="bg-white rounded-xl shadow p-4 space-y-3">
+              <h3 className="font-semibold flex items-center gap-2"><Store size={18} /> Tallennetut toimittajat</h3>
+              {vendors.length === 0 && (
+                <p className="text-sm text-gray-400">Ei tallennettuja toimittajia. Skannaa kuitti ja tallenna toimittaja.</p>
+              )}
+              <div className="space-y-2">
+                {vendors.map((v) => (
+                  <div key={v.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                    <div>
+                      <div className="text-sm font-medium">{v.name}</div>
+                      {v.businessId && <div className="text-xs text-gray-400">{v.businessId}</div>}
+                      {v.address && <div className="text-xs text-gray-400">{v.address}</div>}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteVendor(v.id)}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
 

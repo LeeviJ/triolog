@@ -1,6 +1,7 @@
 const KEY = 'triolog_trips';
 const SUGGESTIONS_KEY = 'triolog_suggestions';
 const SETTINGS_KEY = 'triolog_settings';
+const VENDORS_KEY = 'triolog_vendors';
 
 const DEFAULT_SETTINGS = {
   use2025Rates: false,
@@ -85,6 +86,7 @@ export function importBackup(file) {
         if (data.trips) saveTrips(data.trips);
         if (data.suggestions) saveSuggestions(data.suggestions);
         if (data.settings) saveSettings(data.settings);
+        if (data.vendors) saveVendors(data.vendors);
         resolve(data);
       } catch (err) {
         reject(new Error('Virheellinen varmuuskopiotiedosto'));
@@ -95,11 +97,24 @@ export function importBackup(file) {
   });
 }
 
+export function loadVendors() {
+  try {
+    return JSON.parse(localStorage.getItem(VENDORS_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveVendors(vendors) {
+  localStorage.setItem(VENDORS_KEY, JSON.stringify(vendors));
+}
+
 export function getBackupData() {
   return {
     trips: loadTrips(),
     suggestions: loadSuggestions(),
     settings: loadSettings(),
+    vendors: loadVendors(),
     exportedAt: new Date().toISOString(),
   };
 }

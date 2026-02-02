@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, Loader2 } from 'lucide-react';
+import { Camera, Loader2, Store } from 'lucide-react';
 import { createWorker } from 'tesseract.js';
 import { parseReceipt } from '../utils/receiptParser';
 
@@ -49,11 +49,12 @@ function preprocessImage(file) {
   });
 }
 
-export default function ReceiptScanner({ onReceiptScanned }) {
+export default function ReceiptScanner({ onReceiptScanned, vendors = [], onSaveVendor }) {
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [dateOverride, setDateOverride] = useState('');
+  const [vendorSaved, setVendorSaved] = useState(false);
   const fileRef = useRef(null);
 
   const handleFile = async (e) => {
@@ -63,6 +64,7 @@ export default function ReceiptScanner({ onReceiptScanned }) {
     setProcessing(true);
     setError(null);
     setResult(null);
+    setVendorSaved(false);
 
     try {
       const processedImage = await preprocessImage(file);
@@ -70,7 +72,7 @@ export default function ReceiptScanner({ onReceiptScanned }) {
       const { data: { text } } = await worker.recognize(processedImage);
       await worker.terminate();
 
-      const parsed = parseReceipt(text);
+      const parsed = parseReceipt(text, vendors);
       // Apply date override if set
       if (dateOverride) {
         const d = new Date(dateOverride);
@@ -156,13 +158,33 @@ export default function ReceiptScanner({ onReceiptScanned }) {
           <div className="bg-white rounded-xl shadow p-4 space-y-2">
             <h3 className="font-semibold text-sm text-gray-500">Kuitin tiedot</h3>
             {result.storeName && (
-              <div className="text-lg font-bold">{result.storeName}</div>
+              <div className="text-lg font-bold">
+                {result.storeName}
+                {result.matchedVendor && (
+                  <span className="ml-2 text-xs font-normal text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Tunnettu toimittaja</span>
+                )}
+              </div>
             )}
             <div className="text-sm text-gray-600 space-y-1">
               {result.date && <div>Päivämäärä: {result.date}</div>}
               {result.time && <div>Aika: {result.time}</div>}
               {result.total && <div>Summa: {result.total} €</div>}
+              {result.matchedVendor?.address && <div>Osoite: {result.matchedVendor.address}</div>}
             </div>
+            {!result.matchedVendor && result.storeName && onSaveVendor && !vendorSaved && (
+              <button
+                onClick={() => {
+                  onSaveVendor({ name: result.storeName, businessId: '', address: '' });
+                  setVendorSaved(true);
+                }}
+                className="mt-2 flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                <Store size={16} /> Tallenna uutena toimittajana
+              </button>
+            )}
+            {vendorSaved && (
+              <div className="mt-2 text-sm text-green-600">Toimittaja tallennettu!</div>
+            )}
           </div>
         </div>
       )}

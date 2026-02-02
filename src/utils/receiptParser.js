@@ -64,7 +64,7 @@ function parseTotal(text) {
   return null;
 }
 
-export function parseReceipt(text) {
+export function parseReceipt(text, savedVendors = []) {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
 
   let date = null;
@@ -72,15 +72,34 @@ export function parseReceipt(text) {
   let storeName = null;
   let total = null;
   let confidence = 'low';
+  let matchedVendor = null;
 
-  // 1. Find store name from common stores list (fast path)
   const lowerText = text.toLowerCase();
-  for (const store of COMMON_STORES) {
-    if (lowerText.includes(store.toLowerCase())) {
-      storeName = store;
+
+  // 1. Check saved vendors first (by businessId, then name)
+  for (const vendor of savedVendors) {
+    if (vendor.businessId && lowerText.includes(vendor.businessId.toLowerCase())) {
+      storeName = vendor.name;
+      matchedVendor = vendor;
+      break;
+    }
+    if (vendor.name && lowerText.includes(vendor.name.toLowerCase())) {
+      storeName = vendor.name;
+      matchedVendor = vendor;
       break;
     }
   }
+
+  // 2. Check common stores list
+  if (!storeName) {
+    for (const store of COMMON_STORES) {
+      if (lowerText.includes(store.toLowerCase())) {
+        storeName = store;
+        break;
+      }
+    }
+  }
+
   // Fallback: first non-empty line
   if (!storeName && lines.length > 0) {
     storeName = lines[0];
@@ -113,7 +132,7 @@ export function parseReceipt(text) {
     confidence = 'medium';
   }
 
-  return { date, time, storeName, total, confidence, raw: text };
+  return { date, time, storeName, total, confidence, matchedVendor, raw: text };
 }
 
 export function receiptTimeToTimestamp(date, time) {
