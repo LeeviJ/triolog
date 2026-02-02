@@ -7,7 +7,7 @@ function preprocessImage(file) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const MAX_DIM = 1500;
+      const MAX_DIM = 1000;
       let { width, height } = img;
       if (width > MAX_DIM || height > MAX_DIM) {
         const scale = MAX_DIM / Math.max(width, height);
@@ -68,7 +68,7 @@ export default function ReceiptScanner({ onReceiptScanned, vendors = [], onSaveV
 
     try {
       const processedImage = await preprocessImage(file);
-      const worker = await createWorker('fin+eng');
+      const worker = await createWorker('fin');
       const { data: { text } } = await worker.recognize(processedImage);
       await worker.terminate();
 
