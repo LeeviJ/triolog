@@ -69,7 +69,11 @@ export default function ReceiptScanner({ onReceiptScanned, vendors = [], onSaveV
     try {
       const processedImage = await preprocessImage(file);
       const worker = await createWorker('fin');
-      const { data: { text } } = await worker.recognize(processedImage);
+      const ocrResult = await Promise.race([
+        worker.recognize(processedImage),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('OCR-aikakatkaisu: käsittely kesti liian kauan. Kokeile pienempää kuvaa.')), 30000)),
+      ]);
+      const { data: { text } } = ocrResult;
       await worker.terminate();
 
       const parsed = parseReceipt(text, vendors);
