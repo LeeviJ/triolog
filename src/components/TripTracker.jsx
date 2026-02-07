@@ -40,6 +40,8 @@ export default function TripTracker({ onTripEnd, profiles }) {
       duration: result.duration,
       type: 'unclassified',
       profile: selectedProfile || 'Yleinen',
+      startAddress: '',
+      endAddress: '',
     });
     setSelectedProfile(null);
   };

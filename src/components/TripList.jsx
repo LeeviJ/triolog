@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Briefcase, User, Trash2, Filter } from 'lucide-react';
+import { Briefcase, User, Trash2, Filter, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 
 function formatDuration(seconds) {
   const h = Math.floor(seconds / 3600);
@@ -20,12 +20,19 @@ const typeColors = {
   private: 'bg-amber-100 text-amber-700',
 };
 
-export default function TripList({ trips, onUpdate, onDelete, profiles }) {
+export default function TripList({ trips, onUpdate, onDelete, onUpdateTrip, profiles }) {
   const [filterProfile, setFilterProfile] = useState('all');
+  const [expandedId, setExpandedId] = useState(null);
 
   const filtered = filterProfile === 'all'
     ? trips
     : trips.filter((t) => (t.profile || 'Yleinen') === filterProfile);
+
+  const handleAddressChange = (id, field, value) => {
+    if (onUpdateTrip) {
+      onUpdateTrip(id, { [field]: value });
+    }
+  };
 
   return (
     <div className="space-y-3 p-4">
@@ -76,6 +83,52 @@ export default function TripList({ trips, onUpdate, onDelete, profiles }) {
                 {typeLabels[trip.type]}
               </span>
             </div>
+
+            {/* Address summary (collapsed) */}
+            {(trip.startAddress || trip.endAddress) && expandedId !== trip.id && (
+              <div className="flex items-start gap-1.5 text-xs text-gray-400">
+                <MapPin size={12} className="shrink-0 mt-0.5" />
+                <span className="truncate">
+                  {trip.startAddress || '?'} → {trip.endAddress || '?'}
+                </span>
+              </div>
+            )}
+
+            {/* Expand/collapse toggle */}
+            <button
+              onClick={() => setExpandedId(expandedId === trip.id ? null : trip.id)}
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <MapPin size={12} />
+              {expandedId === trip.id ? 'Piilota osoitteet' : 'Muokkaa osoitteita'}
+              {expandedId === trip.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            </button>
+
+            {/* Expanded address fields */}
+            {expandedId === trip.id && (
+              <div className="space-y-2 pt-1">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Lähtöosoite</label>
+                  <input
+                    type="text"
+                    value={trip.startAddress || ''}
+                    onChange={(e) => handleAddressChange(trip.id, 'startAddress', e.target.value)}
+                    placeholder="esim. Kotikatu 5, Joensuu"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Saapumisosoite</label>
+                  <input
+                    type="text"
+                    value={trip.endAddress || ''}
+                    onChange={(e) => handleAddressChange(trip.id, 'endAddress', e.target.value)}
+                    placeholder="esim. Torikatu 21, Joensuu"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-2">
               <button

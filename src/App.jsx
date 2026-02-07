@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MapPin, List, Receipt, Menu, Download, Upload, Plus, X, Mail, Store, Trash2, FileText } from 'lucide-react';
+import { MapPin, List, Receipt, Menu, Download, Upload, Plus, X, Mail, Store, Trash2, FileText, FlaskConical } from 'lucide-react';
 import TripTracker from './components/TripTracker';
 import TripList from './components/TripList';
 import ReceiptScanner from './components/ReceiptScanner';
@@ -13,6 +13,7 @@ import {
   getRates, sendBackupByEmail,
 } from './utils/storage';
 import { generateTripPDF } from './utils/pdfReport';
+import { generateTestTrips } from './utils/testData';
 import { receiptTimeToTimestamp } from './utils/receiptParser';
 
 const MATCH_WINDOW_MS = 30 * 60 * 1000;
@@ -54,6 +55,16 @@ export default function App() {
 
   const handleDelete = (id) => {
     setTrips((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const handleUpdateTrip = (id, fields) => {
+    setTrips((prev) => prev.map((t) => (t.id === id ? { ...t, ...fields } : t)));
+  };
+
+  const handleAddTestTrips = () => {
+    const testTrips = generateTestTrips(8);
+    setTrips((prev) => [...testTrips, ...prev]);
+    setTab('list');
   };
 
   const handleReceiptScanned = (parsed) => {
@@ -172,6 +183,7 @@ export default function App() {
             trips={trips}
             onUpdate={handleUpdateType}
             onDelete={handleDelete}
+            onUpdateTrip={handleUpdateTrip}
             profiles={profiles}
           />
         )}
@@ -340,6 +352,24 @@ export default function App() {
                 </button>
               </div>
             </div>
+
+            {/* Dev: Test data */}
+            {import.meta.env.DEV && (
+              <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-3">
+                <h3 className="font-semibold flex items-center gap-2 text-orange-700">
+                  <FlaskConical size={18} /> Kehitystyökalut
+                </h3>
+                <button
+                  onClick={handleAddTestTrips}
+                  className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-medium py-2.5 rounded-lg transition-colors text-sm"
+                >
+                  <FlaskConical size={16} /> Lisää testimatkoja (8 kpl)
+                </button>
+                <p className="text-xs text-orange-400">
+                  Näkyy vain kehitysnäkymässä (npm run dev).
+                </p>
+              </div>
+            )}
 
             {/* Backup */}
             <div className="bg-white rounded-xl shadow p-4 space-y-3">

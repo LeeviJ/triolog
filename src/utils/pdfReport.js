@@ -23,6 +23,11 @@ function formatDuration(seconds) {
   return `${m} min`
 }
 
+function esc(str) {
+  if (!str) return ''
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
 const typeLabels = {
   unclassified: 'Luokittelematon',
   work: 'Työajo',
@@ -73,22 +78,26 @@ export function generateTripPDF(trips, settings, options = {}) {
   <title>Ajopäiväkirja — TrioLog</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 11px; color: #1a1a1a; padding: 20mm; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 10px; color: #1a1a1a; padding: 15mm; }
     h1 { font-size: 18px; margin-bottom: 4px; }
     .subtitle { color: #666; font-size: 12px; margin-bottom: 20px; }
-    .summary { display: flex; gap: 24px; margin-bottom: 24px; padding: 12px 16px; background: #f5f5f5; border-radius: 8px; }
+    .summary { display: flex; gap: 24px; margin-bottom: 24px; padding: 12px 16px; background: #f5f5f5; border-radius: 8px; flex-wrap: wrap; }
     .summary-item { }
-    .summary-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
-    .summary-value { font-size: 16px; font-weight: 700; margin-top: 2px; }
+    .summary-label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+    .summary-value { font-size: 15px; font-weight: 700; margin-top: 2px; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-    th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; padding: 8px 12px; border-bottom: 2px solid #e5e5e5; }
-    td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; font-size: 11px; }
+    th { text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; padding: 6px 8px; border-bottom: 2px solid #e5e5e5; white-space: nowrap; }
+    td { padding: 6px 8px; border-bottom: 1px solid #f0f0f0; font-size: 10px; }
+    td.addr { font-size: 9px; color: #555; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     tr:nth-child(even) { background: #fafafa; }
     .type-work { color: #1d4ed8; font-weight: 600; }
     .type-private { color: #b45309; font-weight: 600; }
     .type-unclassified { color: #666; }
     .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e5e5e5; color: #aaa; font-size: 10px; display: flex; justify-content: space-between; }
-    @media print { body { padding: 10mm; } }
+    @media print {
+      body { padding: 10mm; }
+      @page { size: A4 landscape; margin: 10mm; }
+    }
   </style>
 </head>
 <body>
@@ -120,6 +129,8 @@ export function generateTripPDF(trips, settings, options = {}) {
         <th>Pvm</th>
         <th>Tyyppi</th>
         <th>Profiili</th>
+        <th>Lähtöosoite</th>
+        <th>Saapumisosoite</th>
         <th>Matka (km)</th>
         <th>Kesto</th>
       </tr>
@@ -131,7 +142,9 @@ export function generateTripPDF(trips, settings, options = {}) {
         <tr>
           <td>${formatDate(t.date)}</td>
           <td class="type-${t.type}">${typeLabels[t.type] || t.type}</td>
-          <td>${t.profile || 'Yleinen'}</td>
+          <td>${esc(t.profile) || 'Yleinen'}</td>
+          <td class="addr" title="${esc(t.startAddress)}">${esc(t.startAddress) || '—'}</td>
+          <td class="addr" title="${esc(t.endAddress)}">${esc(t.endAddress) || '—'}</td>
           <td>${t.distance.toFixed(2)}</td>
           <td>${formatDuration(t.duration)}</td>
         </tr>`
