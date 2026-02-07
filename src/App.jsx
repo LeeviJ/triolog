@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MapPin, List, Receipt, Menu, Download, Upload, Plus, X, Mail, Store, Trash2 } from 'lucide-react';
+import { MapPin, List, Receipt, Menu, Download, Upload, Plus, X, Mail, Store, Trash2, FileText } from 'lucide-react';
 import TripTracker from './components/TripTracker';
 import TripList from './components/TripList';
 import ReceiptScanner from './components/ReceiptScanner';
@@ -12,6 +12,7 @@ import {
   exportBackup, importBackup,
   getRates, sendBackupByEmail,
 } from './utils/storage';
+import { generateTripPDF } from './utils/pdfReport';
 import { receiptTimeToTimestamp } from './utils/receiptParser';
 
 const MATCH_WINDOW_MS = 30 * 60 * 1000;
@@ -307,6 +308,37 @@ export default function App() {
               <p className="text-xs text-gray-400">
                 Kun kytkin on päällä, varmuuskopio lähetetään sähköpostiin aina kun uusi matka tallentuu.
               </p>
+            </div>
+
+            {/* PDF Report */}
+            <div className="bg-white rounded-xl shadow p-4 space-y-3">
+              <h3 className="font-semibold flex items-center gap-2"><FileText size={18} /> Ajopäiväkirja PDF</h3>
+              <p className="text-sm text-gray-500">
+                Luo siisti PDF-raportti kaikista matkoistasi. Sopii verottajalle ja kirjanpitoon.
+              </p>
+              <button
+                onClick={() => generateTripPDF(trips, settings)}
+                disabled={trips.length === 0}
+                className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg transition-colors text-sm"
+              >
+                <FileText size={16} /> Lataa PDF-raportti
+              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => generateTripPDF(trips, settings, { type: 'work' })}
+                  disabled={trips.length === 0}
+                  className="flex-1 flex items-center justify-center gap-1 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2 rounded-lg transition-colors text-xs"
+                >
+                  Vain työajot
+                </button>
+                <button
+                  onClick={() => generateTripPDF(trips, settings, { type: 'private' })}
+                  disabled={trips.length === 0}
+                  className="flex-1 flex items-center justify-center gap-1 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2 rounded-lg transition-colors text-xs"
+                >
+                  Vain yksityiset
+                </button>
+              </div>
             </div>
 
             {/* Backup */}

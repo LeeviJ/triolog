@@ -142,7 +142,7 @@ export function generateTripPDF(trips, settings, options = {}) {
 
   <div class="footer">
     <span>TrioLog — ajopäiväkirja ja kuittien hallinta</span>
-    <span>info@triotools.fi</span>
+    <span>leevi.latvatalo@gmail.com</span>
   </div>
 </body>
 </html>`
