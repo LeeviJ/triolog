@@ -108,7 +108,7 @@ export default function TripList({ trips, onUpdate, onDelete, onUpdateTrip, prof
             {expandedId === trip.id && (
               <div className="space-y-2 pt-1">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Lähtöosoite</label>
+                  <label className="block text-xs text-gray-500 mb-1">Lähtöpaikka</label>
                   <input
                     type="text"
                     value={trip.startAddress || ''}
@@ -118,7 +118,7 @@ export default function TripList({ trips, onUpdate, onDelete, onUpdateTrip, prof
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Saapumisosoite</label>
+                  <label className="block text-xs text-gray-500 mb-1">Määränpää</label>
                   <input
                     type="text"
                     value={trip.endAddress || ''}

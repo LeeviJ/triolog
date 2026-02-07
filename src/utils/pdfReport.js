@@ -129,8 +129,8 @@ export function generateTripPDF(trips, settings, options = {}) {
         <th>Pvm</th>
         <th>Tyyppi</th>
         <th>Profiili</th>
-        <th>Lähtöosoite</th>
-        <th>Saapumisosoite</th>
+        <th>Lähtöpaikka</th>
+        <th>Määränpää</th>
         <th>Matka (km)</th>
         <th>Kesto</th>
       </tr>
@@ -155,7 +155,7 @@ export function generateTripPDF(trips, settings, options = {}) {
 
   <div class="footer">
     <span>TrioLog — ajopäiväkirja ja kuittien hallinta</span>
-    <span>leevi.latvatalo@gmail.com</span>
+    <span>Kyyränkoski Tmi — Y-tunnus 1437272-9</span>
   </div>
 </body>
 </html>`
